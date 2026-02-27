@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      #- HOST=0.0.0.0
+      - PORT=3000
+      - DB_PATH=/data/hytta.db
+    volumes:
+      - ./hytta_data:/data
+    ports:
+      - "3030:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthz"]
+      interval: 30000s
+      timeout: 5s
+      retries: 3
+
+caddy:
+  image: docker.io/library/caddy:2.9
+  env_file:
+    - .env
+  environment:
+    - DOMAIN=${DOMAIN}
+    - ACME_EMAIL=${ACME_EMAIL}
+  ports:
+    - "80:80"
+    - "443:443"
+  volumes:
+    - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    - caddy_data:/data
+    - caddy_config:/config
+  depends_on:
+    - app
+
+volumes:
+  hytta_data:
+  caddy_data:
+  caddy_config:

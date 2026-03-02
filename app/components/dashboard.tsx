@@ -1,4 +1,4 @@
-import { Form, useFetcher, useNavigation } from "@remix-run/react";
+import { Form, useFetcher, useNavigate, useNavigation } from "@remix-run/react";
 import { Cloud, Link as LinkIcon, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "~/lib/i18n";
@@ -89,6 +89,7 @@ export function Dashboard(props: Props) {
     props.lang === "en"
       ? `/en?season=${props.selectedSeason}`
       : `/?index&season=${props.selectedSeason}`;
+  const navigate = useNavigate();
   const usersModalHref = `${pageAction}&manageUsers=1`;
   const [faqSearch, setFaqSearch] = useState("");
   const checklistBySeason = useMemo(
@@ -189,6 +190,17 @@ export function Dashboard(props: Props) {
       setPendingResetFaq(false);
     }
   }, [pendingResetFaq, navigation.state]);
+
+  useEffect(() => {
+    if (!props.showUsersModal) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        navigate(pageAction);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [props.showUsersModal, navigate, pageAction]);
 
   function toggleTick(id: number) {
     setTicks((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -527,8 +539,14 @@ export function Dashboard(props: Props) {
       </section>
 
       {props.canWrite && editingLink ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-stone-300 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+          onClick={() => navigate(pageAction)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-stone-300 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+            onClick={(event) => event.stopPropagation()}
+          >
             <h3 className="mb-3 text-base font-semibold">{props.msg.editLink}</h3>
             <Form action={pageAction} className="space-y-2" method="post">
               <input type="hidden" name="intent" value="update-link" />
@@ -612,8 +630,14 @@ export function Dashboard(props: Props) {
       ) : null}
 
       {props.canWrite && props.showUsersModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-stone-300 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+          onClick={() => navigate(pageAction)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-stone-300 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+            onClick={(event) => event.stopPropagation()}
+          >
             <h3 className="mb-3 text-base font-semibold">{props.msg.users}</h3>
             <Form action={usersModalHref} className="space-y-2" method="post">
               <input name="intent" type="hidden" value="create-user" />

@@ -17,6 +17,8 @@ type Msg = {
   editLink: string;
   addLink: string;
   delete: string;
+  usefulNumbers: string;
+  addPhone: string;
   faq: string;
   searchFaq: string;
   addFaq: string;
@@ -51,6 +53,14 @@ type LinkItem = {
   icon: string;
 };
 
+type PhoneNumberItem = {
+  id: number;
+  title_no: string;
+  title_en: string;
+  title: string;
+  phone_number: string;
+};
+
 type FaqItem = {
   id: number;
   question_no: string;
@@ -70,11 +80,13 @@ type Props = {
   editingFaqId: number | null;
   editingLinkId: number | null;
   editingTemplateId: number | null;
+  editingPhoneNumberId: number | null;
   showUsersModal: boolean;
   checklist: ChecklistTemplate[];
   faqEntries: FaqItem[];
   shoppingItems: ShoppingItem[];
   links: LinkItem[];
+  phoneNumbers: PhoneNumberItem[];
 };
 
 function linkIcon(name: string) {
@@ -110,17 +122,21 @@ export function Dashboard(props: Props) {
   const addTemplateFormRef = useRef<HTMLFormElement>(null);
   const addShoppingFormRef = useRef<HTMLFormElement>(null);
   const addLinkFormRef = useRef<HTMLFormElement>(null);
+  const addPhoneFormRef = useRef<HTMLFormElement>(null);
   const addFaqFormRef = useRef<HTMLFormElement>(null);
   const [pendingResetTemplate, setPendingResetTemplate] = useState(false);
   const [pendingResetShopping, setPendingResetShopping] = useState(false);
   const [pendingResetLink, setPendingResetLink] = useState(false);
+  const [pendingResetPhone, setPendingResetPhone] = useState(false);
   const [pendingResetFaq, setPendingResetFaq] = useState(false);
   const [dragChecklistId, setDragChecklistId] = useState<number | null>(null);
   const [dragShoppingId, setDragShoppingId] = useState<number | null>(null);
   const [dragLinkId, setDragLinkId] = useState<number | null>(null);
+  const [dragPhoneId, setDragPhoneId] = useState<number | null>(null);
   const [dragFaqId, setDragFaqId] = useState<number | null>(null);
   const [localChecklist, setLocalChecklist] = useState<ChecklistTemplate[]>(selectedChecklist);
   const [localLinks, setLocalLinks] = useState<LinkItem[]>(props.links);
+  const [localPhoneNumbers, setLocalPhoneNumbers] = useState<PhoneNumberItem[]>(props.phoneNumbers);
   const [localFaq, setLocalFaq] = useState<FaqItem[]>(props.faqEntries);
 
   useEffect(() => {
@@ -142,6 +158,7 @@ export function Dashboard(props: Props) {
 
   const [optimisticItems, setOptimisticItems] = useState<ShoppingItem[]>(props.shoppingItems);
   const editingLink = props.links.find((item) => item.id === props.editingLinkId) ?? null;
+  const editingPhoneNumber = props.phoneNumbers.find((item) => item.id === props.editingPhoneNumberId) ?? null;
   const editingTemplate = props.checklist.find((item) => item.id === props.editingTemplateId) ?? null;
   const editingFaq = props.faqEntries.find((item) => item.id === props.editingFaqId) ?? null;
   const pendingAddName = addFetcher.formData?.get("name");
@@ -164,6 +181,9 @@ export function Dashboard(props: Props) {
     setLocalLinks(props.links);
   }, [props.links]);
   useEffect(() => {
+    setLocalPhoneNumbers(props.phoneNumbers);
+  }, [props.phoneNumbers]);
+  useEffect(() => {
     setLocalFaq(props.faqEntries);
   }, [props.faqEntries]);
   useEffect(() => {
@@ -184,6 +204,12 @@ export function Dashboard(props: Props) {
       setPendingResetLink(false);
     }
   }, [pendingResetLink, navigation.state]);
+  useEffect(() => {
+    if (pendingResetPhone && navigation.state === "idle") {
+      addPhoneFormRef.current?.reset();
+      setPendingResetPhone(false);
+    }
+  }, [pendingResetPhone, navigation.state]);
   useEffect(() => {
     if (pendingResetFaq && navigation.state === "idle") {
       addFaqFormRef.current?.reset();
@@ -223,7 +249,7 @@ export function Dashboard(props: Props) {
     return next;
   }
 
-  function submitReorder(intent: "reorder-checklist" | "reorder-shopping" | "reorder-links" | "reorder-faq", ids: number[], season?: "summer" | "winter") {
+  function submitReorder(intent: "reorder-checklist" | "reorder-shopping" | "reorder-links" | "reorder-phones" | "reorder-faq", ids: number[], season?: "summer" | "winter") {
     const formData = new FormData();
     formData.set("intent", intent);
     formData.set("ids", JSON.stringify(ids));
@@ -257,6 +283,14 @@ export function Dashboard(props: Props) {
     setLocalLinks(next);
     submitReorder("reorder-links", next.map((item) => item.id));
     setDragLinkId(null);
+  }
+
+  function onPhoneDrop(targetId: number) {
+    if (!props.canWrite || dragPhoneId == null) return;
+    const next = reorderById(localPhoneNumbers, dragPhoneId, targetId);
+    setLocalPhoneNumbers(next);
+    submitReorder("reorder-phones", next.map((item) => item.id));
+    setDragPhoneId(null);
   }
 
   function onFaqDrop(targetId: number) {
@@ -460,7 +494,79 @@ export function Dashboard(props: Props) {
       </section>
 
       <section className="rounded-2xl border border-stone-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="mb-3 text-lg font-semibold">{props.msg.externalLinks}</h2>
+        <h2 className="mb-3 text-lg font-semibold">{props.msg.usefulNumbers}</h2>
+        <div className="grid gap-2">
+          {localPhoneNumbers.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-2 rounded-lg border border-stone-300 px-3 py-2 text-sm dark:border-slate-700"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => onPhoneDrop(item.id)}
+            >
+              <span
+                className="min-w-0 flex items-start gap-2 hover:underline"
+                draggable={props.canWrite}
+                onDragEnd={() => setDragPhoneId(null)}
+                onDragStart={() => setDragPhoneId(item.id)}
+              >
+                {props.canWrite ? <span className="cursor-move rounded px-1 text-stone-500">::</span> : null}
+                <a className="whitespace-normal break-words" href={`tel:${item.phone_number}`}>
+                  {item.title}
+                </a>
+              </span>
+              {props.canWrite ? (
+                <details className="relative shrink-0">
+                  <summary className="list-none cursor-pointer rounded-md border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 dark:border-slate-700 dark:hover:bg-slate-800">
+                    ...
+                  </summary>
+                  <div className="absolute right-0 z-10 mt-1 min-w-28 rounded-lg border border-stone-300 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                    <a
+                      className="block rounded-md px-2 py-1 text-xs hover:bg-stone-100 dark:hover:bg-slate-800"
+                      href={`${pageAction}&editPhone=${item.id}`}
+                    >
+                      {props.msg.editLink}
+                    </a>
+                    <Form action={pageAction} method="post">
+                      <input name="intent" type="hidden" value="delete-phone" />
+                      <input name="id" type="hidden" value={item.id} />
+                      <input name="csrfToken" type="hidden" value={props.csrfToken} />
+                      <button
+                        className="block w-full rounded-md px-2 py-1 text-left text-xs hover:bg-stone-100 dark:hover:bg-slate-800"
+                        type="submit"
+                      >
+                        {props.msg.delete}
+                      </button>
+                    </Form>
+                  </div>
+                </details>
+              ) : null}
+            </div>
+          ))}
+        </div>
+
+        {props.canWrite ? (
+          <details className="mt-3 rounded-lg border border-stone-200 p-2 dark:border-slate-700">
+            <summary className="cursor-pointer select-none text-sm font-medium">{props.msg.addPhone}</summary>
+            <Form
+              action={pageAction}
+              className="mt-2 space-y-2"
+              method="post"
+              onSubmit={() => setPendingResetPhone(true)}
+              ref={addPhoneFormRef}
+            >
+              <input type="hidden" name="intent" value="add-phone" />
+              <input type="hidden" name="csrfToken" value={props.csrfToken} />
+              <input className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" name="title_no" placeholder="Tittel (NO)" required />
+              <input className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" name="title_en" placeholder="Title (EN)" required />
+              <input className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900" name="phone_number" placeholder="112" required type="tel" />
+              <button className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white dark:bg-stone-200 dark:text-slate-900" type="submit">
+                {props.msg.save}
+              </button>
+            </Form>
+          </details>
+        ) : null}
+
+        <h2 className="mt-6 mb-3 text-lg font-semibold">{props.msg.externalLinks}</h2>
         <div className="grid gap-2">
           {localLinks.map((item) => {
             const Icon = linkIcon(item.icon);
@@ -573,6 +679,58 @@ export function Dashboard(props: Props) {
                 placeholder="https://..."
                 required
                 type="url"
+              />
+              <div className="flex gap-2">
+                <a
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-center text-sm hover:bg-stone-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                  href={pageAction}
+                >
+                  {props.msg.cancel}
+                </a>
+                <button className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white dark:bg-stone-200 dark:text-slate-900" type="submit">
+                  {props.msg.save}
+                </button>
+              </div>
+            </Form>
+          </div>
+        </div>
+      ) : null}
+
+      {props.canWrite && editingPhoneNumber ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+          onClick={() => navigate(pageAction)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-stone-300 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="mb-3 text-base font-semibold">{props.msg.editLink}</h3>
+            <Form action={pageAction} className="space-y-2" method="post">
+              <input type="hidden" name="intent" value="update-phone" />
+              <input type="hidden" name="id" value={editingPhoneNumber.id} />
+              <input type="hidden" name="csrfToken" value={props.csrfToken} />
+              <input
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                defaultValue={editingPhoneNumber.title_no}
+                name="title_no"
+                placeholder="Tittel (NO)"
+                required
+              />
+              <input
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                defaultValue={editingPhoneNumber.title_en}
+                name="title_en"
+                placeholder="Title (EN)"
+                required
+              />
+              <input
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                defaultValue={editingPhoneNumber.phone_number}
+                name="phone_number"
+                placeholder="112"
+                required
+                type="tel"
               />
               <div className="flex gap-2">
                 <a

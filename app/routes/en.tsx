@@ -24,11 +24,13 @@ export default function EnIndex() {
       csrfToken={rootData.csrfToken}
       editingFaqId={data.editingFaqId}
       editingLinkId={data.editingLinkId}
+      editingPhoneNumberId={data.editingPhoneNumberId}
       editingTemplateId={data.editingTemplateId}
       faqEntries={data.faqEntries}
       lang={data.lang}
       links={data.links}
       msg={data.msg}
+      phoneNumbers={data.phoneNumbers}
       selectedSeason={data.selectedSeason}
       showUsersModal={data.showUsersModal}
       shoppingItems={data.shoppingItems}

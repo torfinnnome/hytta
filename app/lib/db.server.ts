@@ -95,6 +95,16 @@ export function initDb(): void {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS phone_numbers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title_no TEXT NOT NULL,
+      title_en TEXT NOT NULL,
+      phone_number TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   ensureShoppingSortOrder();

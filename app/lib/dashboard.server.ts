@@ -1,7 +1,7 @@
 import { json, redirect } from "@remix-run/node";
 import { createUser, findUserByEmail, getOptionalUser, requireUser } from "~/lib/auth.server";
 import { requireValidCsrf } from "~/lib/csrf.server";
-import { addFaq, addLink, addShoppingItem, clearShoppingList, createChecklistTemplate, deleteChecklistTemplate, deleteFaq, deleteLink, listChecklistTemplates, listFaqEntries, listLinks, listShoppingItems, removeShoppingItem, reorderChecklistTemplates, reorderFaqEntries, reorderLinks, reorderShoppingItems, updateChecklistTemplate, updateFaq, updateLink } from "~/lib/data.server";
+import { addFaq, addLink, addPhoneNumber, addShoppingItem, clearShoppingList, createChecklistTemplate, deleteChecklistTemplate, deleteFaq, deleteLink, deletePhoneNumber, listChecklistTemplates, listFaqEntries, listLinks, listPhoneNumbers, listShoppingItems, removeShoppingItem, reorderChecklistTemplates, reorderFaqEntries, reorderLinks, reorderPhoneNumbers, reorderShoppingItems, updateChecklistTemplate, updateFaq, updateLink, updatePhoneNumber } from "~/lib/data.server";
 import { t } from "~/lib/i18n";
 import { langFromRequest } from "~/lib/lang.server";
 import { commitSession, getSession } from "~/lib/session.server";
@@ -26,17 +26,22 @@ export async function dashboardLoader(request: Request) {
   const editFaqRaw = url.searchParams.get("editFaq");
   const editFaqParam = editFaqRaw ? Number(editFaqRaw) : NaN;
   const editingFaqId = Number.isFinite(editFaqParam) ? editFaqParam : null;
+  const editPhoneRaw = url.searchParams.get("editPhone");
+  const editPhoneParam = editPhoneRaw ? Number(editPhoneRaw) : NaN;
+  const editingPhoneNumberId = Number.isFinite(editPhoneParam) ? editPhoneParam : null;
   const showUsersModal = url.searchParams.get("manageUsers") === "1";
 
   return json({
     checklist: listChecklistTemplates(),
     shoppingItems: listShoppingItems(),
     links: listLinks(lang),
+    phoneNumbers: listPhoneNumbers(lang),
     faqEntries: listFaqEntries(lang),
     selectedSeason,
     editingLinkId,
     editingTemplateId,
     editingFaqId,
+    editingPhoneNumberId,
     showUsersModal,
     canWrite: Boolean(user),
     msg,
@@ -253,6 +258,51 @@ export async function dashboardAction(request: Request) {
   if (intent === "reorder-faq") {
     const ids = parseIds(formData.get("ids"));
     if (ids.length > 0) reorderFaqEntries(ids);
+    return json({ ok: true }, { headers: { "Set-Cookie": await commitSession(session) } });
+  }
+
+  if (intent === "add-phone") {
+    const title_no = String(formData.get("title_no") || "").trim();
+    const title_en = String(formData.get("title_en") || "").trim();
+    const phone_number = String(formData.get("phone_number") || "").trim();
+    if (title_no && title_en && phone_number) addPhoneNumber({ title_no, title_en, phone_number });
+
+    return redirect(`${new URL(request.url).pathname}${new URL(request.url).search}`, {
+      headers: { "Set-Cookie": await commitSession(session) }
+    });
+  }
+
+  if (intent === "update-phone") {
+    const id = Number(formData.get("id"));
+    const title_no = String(formData.get("title_no") || "").trim();
+    const title_en = String(formData.get("title_en") || "").trim();
+    const phone = String(formData.get("phone_number") || "").trim();
+    if (Number.isFinite(id) && title_no && title_en && phone) {
+      updatePhoneNumber({ id, title_no, title_en, phone_number: phone });
+    }
+
+    const pageUrl = new URL(request.url);
+    pageUrl.searchParams.delete("editPhone");
+    return redirect(`${pageUrl.pathname}${pageUrl.search}`, {
+      headers: { "Set-Cookie": await commitSession(session) }
+    });
+  }
+
+  if (intent === "delete-phone") {
+    const id = Number(formData.get("id"));
+    if (Number.isFinite(id)) {
+      deletePhoneNumber(id);
+    }
+    const pageUrl = new URL(request.url);
+    pageUrl.searchParams.delete("editPhone");
+    return redirect(`${pageUrl.pathname}${pageUrl.search}`, {
+      headers: { "Set-Cookie": await commitSession(session) }
+    });
+  }
+
+  if (intent === "reorder-phones") {
+    const ids = parseIds(formData.get("ids"));
+    if (ids.length > 0) reorderPhoneNumbers(ids);
     return json({ ok: true }, { headers: { "Set-Cookie": await commitSession(session) } });
   }
 
